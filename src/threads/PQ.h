@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 //#include <stdlib.h>
-#include "malloc.c"
+#include "malloc.h"
 
 typedef struct PQNode_tag {
 	int64_t priority;
