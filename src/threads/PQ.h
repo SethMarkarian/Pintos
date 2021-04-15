@@ -1,5 +1,5 @@
-#ifndef PQ
-#define PQ
+#ifndef THREADS_PQ_H
+#define THREADS_PQ_H
 
 #include <stdio.h>
 //#include <stdlib.h>
@@ -20,4 +20,4 @@ extern void pushPQ(PQHead * pqh, void * pt, int64_t pr);
 extern void * popPQ(PQHead * pqh);
 extern void * peekPQ(PQHead * pqh);
 
-#endif
+#endif /* threads/PQ.h */
