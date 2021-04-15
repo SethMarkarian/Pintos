@@ -12,11 +12,11 @@ typedef struct PQNode_tag {
 
 typedef struct PQHead_tag {
 	struct PQNode_tag * head;
-}
+} PQHead;
 
 extern void createPQHead(PQHead * pqh);
 extern void pushPQ(PQHead * pqh, void * pt, int64_t pr);
-extern void * popPQ(PQHead * pqn);
-extern void * peekPQ(PQHead * pqn);
+extern void * popPQ(PQHead * pqh);
+extern void * peekPQ(PQHead * pqh);
 
 #endif

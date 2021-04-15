@@ -17,8 +17,9 @@ extern void pushPQ(PQHead * pqh, void * pt, int64_t pr){
 	if(prev -> priority > pr){ // insert at front of queue
 		ins -> next = prev;
 		pqh -> head = ins;
+		return;
 	}
-	PQNode * nxt = pqn -> next;
+	PQNode * nxt = prev -> next;
 	while(nxt != NULL){ // locate appropriate insert location
 		if (nxt -> priority > pr) break; // specific to Pintos
 		prev = nxt;
