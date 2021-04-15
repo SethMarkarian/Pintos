@@ -2,7 +2,8 @@
 #define PQ
 
 #include <stdio.h>
-#include <stdlib.h>
+//#include <stdlib.h>
+#include "malloc.c"
 
 typedef struct PQNode_tag {
 	int64_t priority;
