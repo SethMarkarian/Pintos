@@ -5,7 +5,7 @@ extern void createPQHead(PQHead * pqh){
 }
 
 extern void pushPQ(PQHead * pqh, void * pt, int64_t pr){
-	PQNode * ins = malloc(sizeof(PQNode));
+	PQNode * ins = (PQNode *) malloc(sizeof(PQNode));
 	ins -> ptr = pt;
 	ins -> priority = pr;
 	ins -> next = NULL;
