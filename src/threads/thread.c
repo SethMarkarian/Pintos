@@ -261,13 +261,15 @@ bool sort_sleep (const struct list_elem *a, const struct list_elem *b, void *aux
 
 void thread_sleep(int64_t down_time) {
 
+  enum intr_level old_level = intr_disable ();
+
   thread_current()->wakeup = down_time + total_ticks;
 
   list_insert_ordered (&sleep_list, &(thread_current()->sleepelem), &sort_sleep, NULL);
 
-  intr_set_level(INTR_OFF);
-
   thread_block();
+
+  intr_set_level (old_level);
 
 }
 
