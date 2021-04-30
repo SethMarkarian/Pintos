@@ -490,10 +490,15 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
+  if(thread_mlfqs){
+return NULL;
+  }
+  else {
   if (list_empty (&ready_list))
     return idle_thread;
   else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -552,6 +557,10 @@ thread_schedule_tail (struct thread *prev)
 static void
 schedule (void) 
 {
+  if(thread_mlfqs){
+
+  }
+  else {
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
@@ -563,6 +572,7 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
+  }
 }
 
 /* Returns a tid to use for a new thread. */
