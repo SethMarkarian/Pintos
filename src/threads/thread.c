@@ -24,6 +24,8 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+static struct list sleep_list;
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -49,6 +51,7 @@ struct kernel_thread_frame
 static long long idle_ticks;    /* # of timer ticks spent idle. */
 static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
+static long long total_ticks = 0;
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
@@ -91,6 +94,7 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&sleep_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -134,9 +138,15 @@ thread_tick (void)
   else
     kernel_ticks++;
 
+  total_ticks ++;
+
+  while(!list_empty(&sleep_list) && list_entry(list_front(&sleep_list), struct thread, sleepelem)->wakeup <= total_ticks)
+    thread_unblock(list_entry(list_pop_front(&sleep_list), struct thread, sleepelem));
+
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
 }
 
 /* Prints thread statistics. */
@@ -213,6 +223,7 @@ thread_create (const char *name, int priority,
 void
 thread_block (void) 
 {
+
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
 
@@ -240,6 +251,24 @@ thread_unblock (struct thread *t)
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
+}
+
+bool sort_sleep (const struct list_elem *a, const struct list_elem *b, void *aux) {
+
+  return (list_entry(a, struct thread, sleepelem)->wakeup <= list_entry(b, struct thread, sleepelem)->wakeup);
+
+}
+
+void thread_sleep(int64_t down_time) {
+
+  thread_current()->wakeup = down_time + total_ticks;
+
+  list_insert_ordered (&sleep_list, &(thread_current()->sleepelem), &sort_sleep, NULL);
+
+  intr_set_level(INTR_OFF);
+
+  thread_block();
+
 }
 
 /* Returns the name of the running thread. */
