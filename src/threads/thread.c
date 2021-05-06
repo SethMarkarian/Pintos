@@ -240,7 +240,7 @@ bool sort_unblock (const struct list_elem *a, const struct list_elem *b, void *a
 
 /* Transitions a blocked thread T to the ready-to-run state.
    This is an error if T is not blocked.  (Use thread_yield() to
-   make the running thread ready.)
+   make the running thqqqread ready.)
 
    This function does not preempt the running thread.  This can
    be important: if the caller had disabled interrupts itself,
@@ -376,10 +376,43 @@ thread_set_priority (int new_priority)
 //enum intr_level old_level;
 //old_level = intr_disable();
 //printf("old priority of %s: %d\n", thread_current() -> name, thread_current() -> priority);
-  thread_current ()->priority = new_priority;
+  thread_current ()->base_priority = new_priority;
 //printf("new priority: %d\n", thread_current() -> priority);
   thread_yield();
 //intr_set_level(old_level);
+
+  //TODO update priority
+}
+
+bool sort_update (const struct list_elem *a, const struct list_elem *b, void *aux) {
+
+  return (list_entry(list_front(list_entry(a, struct lock, elem)->semaphore->waiters), struct thread, elem)->priority > list_entry(list_front(list_entry(b, struct lock, elem)->semaphore->waiters), struct thread, elem)->priority);
+
+}
+
+void
+thread_update_priority(struct lock* changed) {
+
+  if(changed != NULL) {
+
+    list_remove(&changed->elem);
+    list_insert_ordered (&aquired, &changed->elem, &sort_update, NULL);
+
+  }
+
+  int new_priority = base_priority;
+  // iterate through list
+
+  if(new_priority != base_priority) {
+
+    priority = new_priority;
+    //update lock
+    //update ready list
+
+    //call update priotry on thread holding waiting lock
+
+  }
+
 }
 
 /* Returns the current thread's priority. */
@@ -506,7 +539,11 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->base_priority = prioirty;
   t->magic = THREAD_MAGIC;
+
+  t->waiting = NULL;
+  list_init(&t->aquiried);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
