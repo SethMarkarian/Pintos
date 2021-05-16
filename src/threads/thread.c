@@ -176,6 +176,7 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
 {
+
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
@@ -232,7 +233,7 @@ thread_block (void)
   schedule ();
 }
 
-bool sort_unblock (const struct list_elem *a, const struct list_elem *b, void *aux) {
+bool sort_thread_priority (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
   return (list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority);
 
@@ -255,12 +256,12 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered (&ready_list, &t->elem, &sort_unblock, NULL);
+  list_insert_ordered (&ready_list, &t->elem, &sort_thread_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
 
-bool sort_sleep (const struct list_elem *a, const struct list_elem *b, void *aux) {
+bool sort_thread_sleep (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
   return (list_entry(a, struct thread, sleepelem)->wakeup <= list_entry(b, struct thread, sleepelem)->wakeup);
 
@@ -270,7 +271,7 @@ void thread_sleep(int64_t down_time) {
 
   thread_current()->wakeup = down_time + total_ticks;
 
-  list_insert_ordered (&sleep_list, &(thread_current()->sleepelem), &sort_sleep, NULL);
+  list_insert_ordered (&sleep_list, &(thread_current()->sleepelem), &sort_thread_sleep, NULL);
 
   intr_set_level(INTR_OFF);
 
@@ -377,6 +378,7 @@ thread_set_priority (int new_priority)
 //old_level = intr_disable();
 //printf("old priority of %s: %d\n", thread_current() -> name, thread_current() -> priority);
   thread_current ()->base_priority = new_priority;
+  thread_update_priority(thread_current(), NULL);
 //printf("new priority: %d\n", thread_current() -> priority);
   thread_yield();
 //intr_set_level(old_level);
@@ -384,42 +386,49 @@ thread_set_priority (int new_priority)
   //TODO update priority
 }
 
-bool sort_update (const struct list_elem *a, const struct list_elem *b, void *aux) {
+bool sort_lock (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
   return (list_entry(list_front(list_entry(a, struct lock, elem)->semaphore->waiters), struct thread, elem)->priority > list_entry(list_front(list_entry(b, struct lock, elem)->semaphore->waiters), struct thread, elem)->priority);
 
 }
 
 void
-thread_update_priority(struct lock* changed) {
+thread_update_priority(struct thread* thread, struct lock* changed) {
 
   if(changed != NULL) {
 
     list_remove(&changed->elem);
-    list_insert_ordered (&aquired, &changed->elem, &sort_update, NULL);
+    list_insert_ordered (&thread->aquired, &changed->elem, &sort_lock, NULL);
 
   }
 
-  int new_priority = base_priority;
-  // iterate through list
+  int lock_priority = 0;
+  if(!list_empty (&lock->acquired)) 
+	lock_priority = lock_get_priority((list_entry (list_front (&thread->acquired), struct lock, acquiredelem)));
 
-  if(new_priority != base_priority) {
+  int new_priority = base_priority;
+  if(new_priority < lock_priority)
+	new_priority = lock_priority;
+
+  if(new_priority != priority) {
 
     priority = new_priority;
-    //update lock
-    //update ready list
-
-    //call update priotry on thread holding waiting lock
+    if(thread->waiting != NULL)
+    	lock_update_priority(thread->waiting, thread);
 
   }
 
 }
 
+//TODO update waiting
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  
+  return thread_current()->priority;
+
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -541,6 +550,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->base_priority = prioirty;
   t->magic = THREAD_MAGIC;
+
+  list_init(&thread->acquired);
+  thread->waiting = NULL;
 
   t->waiting = NULL;
   list_init(&t->aquiried);

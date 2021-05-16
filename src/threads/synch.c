@@ -48,6 +48,7 @@ sema_init (struct semaphore *sema, unsigned value)
 
   sema->value = value;
   list_init (&sema->waiters);
+  sema->priority = 0;
 }
 
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
@@ -68,7 +69,7 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered (&sema->waiters, &thread_current()->elem, &sort_unblock, NULL);
       thread_block ();
     }
   sema->value--;
@@ -118,6 +119,32 @@ sema_up (struct semaphore *sema)
                                 struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
+}
+
+int
+sema_get_priority(struct semaphore* sema)
+{
+
+  return sema->priority;
+
+}
+
+void
+sema_update_priority(struct semaphore* sema, struct thread* changed)
+{
+
+  if(changed != NULL) {
+
+    list_remove(&changed->elem);
+    list_insert_ordered (&sema->waiters, &changed->elem, &sort_thread_priority, NULL);
+
+  }
+
+  if (list_empty (&sema->waiters)) 
+    return 0;
+
+  sema->priority = get_priority((list_entry (list_front (&sema->waiters), struct thread, elem)));
+
 }
 
 static void sema_test_helper (void *sema_);
@@ -179,6 +206,7 @@ lock_init (struct lock *lock)
 
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
+  lock->priority = 0;
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -196,8 +224,11 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  thread_current()->waiting = lock;
   sema_down (&lock->semaphore);
+  thread_current()->waiting = NULL;
   lock->holder = thread_current ();
+  lock_update_priority(lock, NULL);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -233,6 +264,7 @@ lock_release (struct lock *lock)
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
+  lock_update_priority(lock, NULL);
 }
 
 /* Returns true if the current thread holds LOCK, false
@@ -245,6 +277,29 @@ lock_held_by_current_thread (const struct lock *lock)
 
   return lock->holder == thread_current ();
 }
+
+int
+lock_get_priority (struct lock* lock) {
+
+  return lock->priority;
+
+}
+
+void
+lock_update_priority (struct lock* lock, struct thread* changed) {
+
+  sema_update_priority(lock->semaphore, changed);
+
+  int new_priority = get_priority(lock->semaphore);
+
+  if (new_priority != lock->priority) {
+
+    update_thread_priority(lock->holder, lock);
+
+  }
+
+}
+
 
 /* One semaphore in a list. */
 struct semaphore_elem 
