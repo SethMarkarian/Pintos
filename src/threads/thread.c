@@ -233,7 +233,7 @@ thread_block (void)
   schedule ();
 }
 
-bool sort_unblock (const struct list_elem *a, const struct list_elem *b, void *aux) {
+bool sort_thread_priority (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
   return (list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority);
 
@@ -256,7 +256,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered (&ready_list, &t->elem, &sort_unblock, NULL);
+  list_insert_ordered (&ready_list, &t->elem, &sort_thread_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -346,7 +346,7 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
 //    list_push_back (&ready_list, &cur->elem);
-    list_insert_ordered (&ready_list, &cur->elem, &sort_unblock, NULL);
+    list_insert_ordered (&ready_list, &cur->elem, &sort_thread_priority, NULL);
 
   cur->status = THREAD_READY;
   schedule ();
@@ -378,6 +378,7 @@ thread_set_priority (int new_priority)
 //old_level = intr_disable();
 //printf("old priority of %s: %d\n", thread_current() -> name, thread_current() -> priority);
   thread_current ()->priority = new_priority;
+  thread_current()->base_priority = new_priority;
 //printf("new priority: %d\n", thread_current() -> priority);
   thread_yield();
 //intr_set_level(old_level);
@@ -507,6 +508,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->base_priority=priority;
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
