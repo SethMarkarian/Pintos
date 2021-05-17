@@ -90,6 +90,10 @@ struct thread
     int priority;                       /* Priority. */
     int base_priority;
     unsigned wakeup;
+
+    struct list acquired;
+    struct lock* waiting;
+
     struct list_elem allelem;           /* List element for all threads list. */
 
     struct list_elem sleepelem;
