@@ -109,6 +109,7 @@ thread_init (void)
 void
 thread_start (void) 
 {
+printf("Testing Testing 123\n");
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
