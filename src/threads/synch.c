@@ -198,9 +198,23 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+// prep to acquire lock
+  thread_current()->waiting=lock;
+// if thread will block, etc etc
+  if((lock->semaphore.value <= 0) && lock->priority < thread_current() -> priority) {
+    lock->priority = thread_current() -> priority;
+  } //BREAKS THE THING
   sema_down (&lock->semaphore);
 // lock has been acquired
   lock->holder = thread_current ();
+  lock->holder->waiting=NULL;
+// check if more elems on list
+/*  if(list_empty(&(lock->semaphore.waiters))) {
+    lock->priority = 0;
+  }
+  else {
+    lock->priority = list_entry(list_front(&(lock->semaphore.waiters)), struct thread, elem)->priority;
+  } */
   list_push_back (&(lock->holder->acquired), &(lock->acquired_elem));
 //  lock->holder->acquired
 }
