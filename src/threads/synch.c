@@ -68,7 +68,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      //list_push_back (&sema->waiters, &thread_current ()->elem);
+//printf("in the sema down while loop\n");
+    //list_push_back (&sema->waiters, &thread_current ()->elem);
       list_insert_ordered (&sema->waiters, &thread_current()->elem, &sort_thread_priority, NULL);
       thread_block ();
     }
@@ -112,11 +113,14 @@ sema_up (struct semaphore *sema)
   enum intr_level old_level;
 
   ASSERT (sema != NULL);
-
+//printf("in sema up\n");
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+  if (!list_empty (&sema->waiters)) {
+    struct thread * t = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
+//    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+    printf("going to unblock %s thread\n", t->name);
+    thread_unblock(t);
+  }
   sema->value++;
   intr_set_level (old_level);
 }
@@ -203,14 +207,24 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+//printf("in lock acquire\n");
 // prep to acquire lock
   thread_current()->waiting=lock;
+bool b = lock->semaphore.value <= 0;
+if(b) {
+printf("thread is going to block in lock_acquire\n");
+}
+
 // if thread will block, etc etc
+
   if((lock->semaphore.value <= 0) && lock->priority < thread_current() -> priority) {
     lock->priority = thread_current() -> priority;
     thread_update_priority(lock->holder);
   }
   sema_down (&lock->semaphore);
+if(b) {
+printf("just got back from being blocked, in lock_acquire\n");
+}
 // lock has been acquired
   lock->holder = thread_current ();
   lock->holder->waiting=NULL;
@@ -261,11 +275,13 @@ lock_release (struct lock *lock)
     lock->priority = list_entry(list_front(&(lock->semaphore.waiters)), struct thread, elem)->priority;
   }*/
   lock_update_priority(lock);
+// printf("released lock\n");
 }
 
 /* updates a locks's priority */
 void
 lock_update_priority(struct lock * l){
+// printf("in lock update priority\n");
   int new_pri = 0;
 // if we need to update priority
   if(!list_empty(&(l->semaphore.waiters))) {

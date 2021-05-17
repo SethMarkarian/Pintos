@@ -91,7 +91,7 @@ void
 thread_init (void) 
 {
   ASSERT (intr_get_level () == INTR_OFF);
-
+printf("in thread init\n");
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&sleep_list);
@@ -109,7 +109,7 @@ thread_init (void)
 void
 thread_start (void) 
 {
-//printf("Testing Testing 123\n");
+printf("Testing Testing 123\n");
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
@@ -184,7 +184,7 @@ thread_create (const char *name, int priority,
   tid_t tid;
 
   ASSERT (function != NULL);
-
+printf("in thread create\n");
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
@@ -228,7 +228,7 @@ thread_block (void)
 
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
-
+printf("in thread block, %s thread\n", thread_current() -> name);
   thread_current ()->status = THREAD_BLOCKED;
   schedule ();
 }
@@ -256,6 +256,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
+printf("in thread unblock: %s thread\n", t -> name);
   list_insert_ordered (&ready_list, &t->elem, &sort_thread_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -301,7 +302,7 @@ thread_current (void)
      recursion can cause stack overflow. */
   ASSERT (is_thread (t));
   ASSERT (t->status == THREAD_RUNNING);
-
+//printf("in thread current\n");
   return t;
 }
 
@@ -373,6 +374,7 @@ thread_foreach (thread_action_func *func, void *aux)
 /* updates a thread's priority */
 void
 thread_update_priority(struct thread * t){
+printf("in thread update priority %s thread\n", t -> name);
   int new_pri = t->base_priority;
 // if we need to update priority
   if(!list_empty(&(t->acquired)) && (list_entry (list_front (&(t->acquired)), struct lock, acquired_elem))->priority > new_pri) {
