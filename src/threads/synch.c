@@ -266,7 +266,9 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   // remove lock from lock->holder->acquired
   list_remove(&(lock->acquired_elem));
-lock_update_priority(lock);
+//lock_update_priority(lock);
+list_remove(&(lock->acquired_elem));
+thread_update_priority(lock->holder);
   lock->holder = NULL;
 bool b = list_empty(&(lock->semaphore.waiters));
 //lock_update_priority(lock);
