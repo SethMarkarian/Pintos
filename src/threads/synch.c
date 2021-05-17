@@ -266,8 +266,10 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   // remove lock from lock->holder->acquired
   list_remove(&(lock->acquired_elem));
+lock_update_priority(lock);
   lock->holder = NULL;
 bool b = list_empty(&(lock->semaphore.waiters));
+//lock_update_priority(lock);
   sema_up (&lock->semaphore);
   // check if more elems on list
   /*if(list_empty(&(lock->semaphore.waiters))) {
@@ -275,7 +277,7 @@ bool b = list_empty(&(lock->semaphore.waiters));
   } else {
     lock->priority = list_entry(list_front(&(lock->semaphore.waiters)), struct thread, elem)->priority;
   }*/
-  lock_update_priority(lock);
+//  lock_update_priority(lock);
 if(!b) {
 printf("%s thread going to yield\n", thread_current() -> name);
 thread_yield();
@@ -296,7 +298,7 @@ lock_update_priority(struct lock * l){
 // must update things
   l->priority = new_pri;
   if(l->holder != NULL){
-// remove from waiters list
+// remove from acquired list
     list_remove(&(l->acquired_elem));
 // reinsert it
     list_insert_ordered(&(l->holder->acquired), &(l->acquired_elem), &sort_lock, NULL);

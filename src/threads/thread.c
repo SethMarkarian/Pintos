@@ -389,6 +389,7 @@ thread_update_priority(struct thread * t){
   }
   if(new_pri == t->priority) return;
 // must update things
+printf("new priority for %s thread: %d\n", t->name, new_pri);
   t->priority = new_pri;
   if(t->waiting != NULL){
 // remove from waiters list
