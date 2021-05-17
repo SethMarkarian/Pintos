@@ -183,6 +183,10 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+bool sort_lock (const struct list_elem * a, const struct list_elem * b, void *aux) {
+  return list_entry(a, struct lock, acquired_elem)->priority > list_entry(b, struct lock, acquired_elem)->priority;
+}
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -215,7 +219,9 @@ lock_acquire (struct lock *lock)
   else {
     lock->priority = list_entry(list_front(&(lock->semaphore.waiters)), struct thread, elem)->priority;
   }
-  list_push_back (&(lock->holder->acquired), &(lock->acquired_elem));
+// update holder thread's acquired list
+//  list_push_back (&(lock->holder->acquired), &(lock->acquired_elem));
+  list_insert_ordered (&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
 //  lock->holder->acquired
 }
 

@@ -26,6 +26,7 @@ struct lock
     int priority; /* priority of highest-priority thread */
   };
 
+bool sort_lock (const struct list_elem *, const struct list_elem *, void *);
 void lock_init (struct lock *);
 void lock_acquire (struct lock *);
 bool lock_try_acquire (struct lock *);
