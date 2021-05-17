@@ -118,7 +118,7 @@ sema_up (struct semaphore *sema)
   if (!list_empty (&sema->waiters)) {
     struct thread * t = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
 //    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
-    printf("going to unblock %s thread\n", t->name);
+//    printf("going to unblock %s thread\n", t->name);
     thread_unblock(t);
   }
   sema->value++;
@@ -212,7 +212,7 @@ lock_acquire (struct lock *lock)
   thread_current()->waiting=lock;
 bool b = lock->semaphore.value <= 0;
 if(b) {
-printf("thread is going to block in lock_acquire\n");
+//printf("thread is going to block in lock_acquire\n");
 }
 
 // if thread will block, etc etc
@@ -223,7 +223,7 @@ printf("thread is going to block in lock_acquire\n");
   }
   sema_down (&lock->semaphore);
 if(b) {
-printf("just got back from being blocked, in lock_acquire\n");
+//printf("just got back from being blocked, in lock_acquire\n");
 }
 // lock has been acquired
   lock->holder = thread_current ();
@@ -267,6 +267,7 @@ lock_release (struct lock *lock)
   // remove lock from lock->holder->acquired
   list_remove(&(lock->acquired_elem));
   lock->holder = NULL;
+bool b = list_empty(&(lock->semaphore.waiters));
   sema_up (&lock->semaphore);
   // check if more elems on list
   /*if(list_empty(&(lock->semaphore.waiters))) {
@@ -275,6 +276,10 @@ lock_release (struct lock *lock)
     lock->priority = list_entry(list_front(&(lock->semaphore.waiters)), struct thread, elem)->priority;
   }*/
   lock_update_priority(lock);
+if(!b) {
+printf("going to yield\n");
+thread_yield();
+}
 // printf("released lock\n");
 }
 
