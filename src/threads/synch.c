@@ -281,7 +281,7 @@ bool b = list_empty(&(lock->semaphore.waiters));
   }*/
 //  lock_update_priority(lock);
 if(!b) {
-printf("%s thread going to yield\n", thread_current() -> name);
+//printf("%s thread going to yield\n", thread_current() -> name);
 thread_yield();
 }
 // printf("released lock\n");

@@ -109,7 +109,7 @@ thread_init (void)
 void
 thread_start (void) 
 {
-printf("Testing Testing 123\n");
+//printf("Testing Testing 123\n");
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
@@ -353,10 +353,10 @@ thread_yield (void)
 
   cur->status = THREAD_READY;
   schedule ();
-if(!list_empty(&ready_list)) {
+/* if(!list_empty(&ready_list)) {
 struct thread * h = list_entry(list_front(&ready_list), struct thread, elem);
 printf("front of ready list after yield from %s thread is %s thread\n", cur->name, h->name);
-}
+} */
 //  schedule();
   intr_set_level (old_level);
 }
@@ -389,7 +389,7 @@ thread_update_priority(struct thread * t){
   }
   if(new_pri == t->priority) return;
 // must update things
-printf("new priority for %s thread: %d\n", t->name, new_pri);
+//printf("new priority for %s thread: %d\n", t->name, new_pri);
   t->priority = new_pri;
   if(t->waiting != NULL){
 // remove from waiters list
