@@ -151,4 +151,6 @@ int thread_get_load_avg (void);
 
 bool sort_thread_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
 
+void thread_update_priority(struct thread *);
+
 #endif /* threads/thread.h */

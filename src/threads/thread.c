@@ -109,7 +109,7 @@ thread_init (void)
 void
 thread_start (void) 
 {
-printf("Testing Testing 123\n");
+//printf("Testing Testing 123\n");
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
@@ -368,6 +368,26 @@ thread_foreach (thread_action_func *func, void *aux)
       struct thread *t = list_entry (e, struct thread, allelem);
       func (t, aux);
     }
+}
+
+/* updates a thread's priority */
+void
+thread_update_priority(struct thread * t){
+  int new_pri = t->base_priority;
+// if we need to update priority
+  if(!list_empty(&(t->acquired)) && (list_entry (list_front (&(t->acquired)), struct lock, acquired_elem))->priority > new_pri) {
+    new_pri = (list_entry (list_front (&(t->acquired)), struct lock, acquired_elem))->priority;
+  }
+  if(new_pri == t->priority) return;
+// must update things
+  t->priority = new_pri;
+  if(t->waiting != NULL){
+// remove from waiters list
+    list_remove(&(t->elem));
+// reinsert it
+    list_insert_ordered(&(t->waiting->semaphore.waiters), &(t->elem), &sort_thread_priority, NULL);
+// update priority of lock
+  }
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
