@@ -140,8 +140,13 @@ thread_tick (void)
 
   total_ticks ++;
 
-  while(!list_empty(&sleep_list) && list_entry(list_front(&sleep_list), struct thread, sleepelem)->wakeup <= total_ticks)
+  while(!list_empty(&sleep_list) && list_entry(list_front(&sleep_list), struct thread, sleepelem)->wakeup <= total_ticks) {
+
+ 	enum intr_level old_level = intr_disable ();
     thread_unblock(list_entry(list_pop_front(&sleep_list), struct thread, sleepelem));
+    intr_set_level(old_level);
+  
+  }
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -271,9 +276,9 @@ void thread_sleep(int64_t down_time) {
 
   thread_current()->wakeup = down_time + total_ticks;
 
-  list_insert_ordered (&sleep_list, &(thread_current()->sleepelem), &sort_thread_sleep, NULL);
-
   intr_set_level(INTR_OFF);
+
+  list_insert_ordered (&sleep_list, &(thread_current()->sleepelem), &sort_thread_sleep, NULL);
 
   thread_block();
 
@@ -346,7 +351,7 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread) 
 //    list_push_back (&ready_list, &cur->elem);
-    list_insert_ordered (&ready_list, &cur->elem, &sort_unblock, NULL);
+    list_insert_ordered (&ready_list, &cur->elem, &sort_thread_priority, NULL);
 
   cur->status = THREAD_READY;
   schedule ();
@@ -388,7 +393,7 @@ thread_set_priority (int new_priority)
 
 bool sort_lock (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
-  return (list_entry(list_front(list_entry(a, struct lock, elem)->semaphore->waiters), struct thread, elem)->priority > list_entry(list_front(list_entry(b, struct lock, elem)->semaphore->waiters), struct thread, elem)->priority);
+  return list_entry(a, struct lock, acquiredelem)->priority > list_entry(b, struct lock, acquiredelem)->priority;
 
 }
 
@@ -397,22 +402,22 @@ thread_update_priority(struct thread* thread, struct lock* changed) {
 
   if(changed != NULL) {
 
-    list_remove(&changed->elem);
-    list_insert_ordered (&thread->aquired, &changed->elem, &sort_lock, NULL);
+    list_remove(&changed->acquiredelem);
+    list_insert_ordered (&thread->acquired, &changed->acquiredelem, &sort_lock, NULL);
 
   }
 
   int lock_priority = 0;
-  if(!list_empty (&lock->acquired)) 
+  if(!list_empty (&thread->acquired)) 
 	lock_priority = lock_get_priority((list_entry (list_front (&thread->acquired), struct lock, acquiredelem)));
 
-  int new_priority = base_priority;
+  int new_priority = thread->base_priority;
   if(new_priority < lock_priority)
 	new_priority = lock_priority;
 
-  if(new_priority != priority) {
+  if(new_priority != thread->priority) {
 
-    priority = new_priority;
+    thread->priority = new_priority;
     if(thread->waiting != NULL)
     	lock_update_priority(thread->waiting, thread);
 
@@ -548,14 +553,14 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
-  t->base_priority = prioirty;
+  t->base_priority = priority;
   t->magic = THREAD_MAGIC;
 
-  list_init(&thread->acquired);
-  thread->waiting = NULL;
+  list_init(&t->acquired);
+  t->waiting = NULL;
 
   t->waiting = NULL;
-  list_init(&t->aquiried);
+  list_init(&t->acquired);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
