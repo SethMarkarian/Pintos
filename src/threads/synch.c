@@ -182,6 +182,7 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+/* used to sort locks from highest to lowest priority */
 bool sort_lock (const struct list_elem * a, const struct list_elem * b, void *aux) {
   return list_entry(a, struct lock, acquired_elem)->priority > list_entry(b, struct lock, acquired_elem)->priority;
 }
@@ -201,7 +202,8 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-
+  enum intr_level old_level;
+  old_level = intr_disable();
 // prep to acquire lock
   thread_current()->waiting=lock;
 // if thread will block, and the lock's priority needs to be updated
@@ -212,12 +214,15 @@ lock_acquire (struct lock *lock)
     list_insert_ordered(&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
     thread_update_priority(lock->holder);
   }
+  intr_set_level(old_level);
   sema_down (&lock->semaphore);
 // lock has been acquired
+  old_level = intr_disable();
   lock->holder = thread_current ();
   lock->holder->waiting=NULL;
 // update holder thread's acquired list
   list_insert_ordered (&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
+  intr_set_level(old_level);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -250,9 +255,12 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+  enum intr_level old_level;
+  old_level = intr_disable();
   // remove lock from lock->holder->acquired
   list_remove(&(lock->acquired_elem));
   list_remove(&(lock->acquired_elem));
+  intr_set_level(old_level);
   thread_update_priority(lock->holder);
   lock->holder = NULL;
   bool b = list_empty(&(lock->semaphore.waiters));
@@ -266,13 +274,18 @@ lock_release (struct lock *lock)
 /* updates a locks's priority */
 void
 lock_update_priority(struct lock * l){
+  enum intr_level old_level;
+  old_level = intr_disable();
 // printf("in lock update priority\n");
   int new_pri = 0;
 // if we need to update priority
   if(!list_empty(&(l->semaphore.waiters))) {
     new_pri = (list_entry (list_front (&(l->semaphore.waiters)), struct thread, elem))->priority;
   }
-  if(new_pri == l->priority) return;
+  if(new_pri == l->priority) {
+    intr_set_level(old_level);
+    return;
+  }
 // must update things
   l->priority = new_pri;
   if(l->holder != NULL){
@@ -280,8 +293,12 @@ lock_update_priority(struct lock * l){
     list_remove(&(l->acquired_elem));
 // reinsert it
     list_insert_ordered(&(l->holder->acquired), &(l->acquired_elem), &sort_lock, NULL);
+    intr_set_level(old_level);
 // update priority of lock
     thread_update_priority(l->holder);
+  }
+  else {
+    intr_set_level(old_level);
   }
 }
 
