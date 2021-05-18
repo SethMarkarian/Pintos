@@ -212,7 +212,7 @@ lock_acquire (struct lock *lock)
   thread_current()->waiting=lock;
 bool b = lock->semaphore.value <= 0;
 if(b) {
-printf("%s thread is going to block in lock_acquire\n", thread_current()->name);
+//printf("%s thread is going to block in lock_acquire\n", thread_current()->name);
 }
 
 // if thread will block, etc etc
@@ -220,9 +220,9 @@ printf("%s thread is going to block in lock_acquire\n", thread_current()->name);
 //printf("%s thread current priority: %d, lock priority: %d\n", thread_current()->name, thread_current()->priority, lock->priority);
 //}
   if((lock->semaphore.value <= 0) && ((lock->priority) < (thread_current() -> priority))) {
-printf("in the if statment\n");
+//printf("in the if statment\n");
     lock->priority = thread_current() -> priority;
-printf("new lock priority: %d\n", lock->priority);
+//printf("new lock priority: %d\n", lock->priority);
 list_remove(&(lock->acquired_elem));
 list_insert_ordered(&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
     thread_update_priority(lock->holder);
@@ -287,7 +287,7 @@ bool b = list_empty(&(lock->semaphore.waiters));
   }*/
 //  lock_update_priority(lock);
 if(!b) {
-printf("%s thread going to yield\n", thread_current() -> name);
+//printf("%s thread going to yield\n", thread_current() -> name);
 thread_yield();
 }
 // printf("released lock\n");
