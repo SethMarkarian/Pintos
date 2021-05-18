@@ -91,7 +91,6 @@ void
 thread_init (void) 
 {
   ASSERT (intr_get_level () == INTR_OFF);
-//printf("in thread init\n");
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&sleep_list);
@@ -109,7 +108,6 @@ thread_init (void)
 void
 thread_start (void) 
 {
-//printf("Testing Testing 123\n");
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
@@ -184,7 +182,6 @@ thread_create (const char *name, int priority,
   tid_t tid;
 
   ASSERT (function != NULL);
-//printf("in thread create\n");
   /* Allocate thread. */
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
@@ -225,14 +222,13 @@ thread_yield();
 void
 thread_block (void) 
 {
-
   ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_OFF);
-//printf("in thread block, %s thread\n", thread_current() -> name);
   thread_current ()->status = THREAD_BLOCKED;
   schedule ();
 }
 
+/* used to sort threads from highest to lowest priority */
 bool sort_thread_priority (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
   return (list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority);
@@ -256,14 +252,12 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-//printf("in thread unblock: %s thread\n", t -> name);
   list_insert_ordered (&ready_list, &t->elem, &sort_thread_priority, NULL);
   t->status = THREAD_READY;
-//thread_yield();
   intr_set_level (old_level);
-//printf("exiting thread unblock\n");
 }
 
+/* used to sort threads from lowest to highest wakeup time */
 bool sort_sleep (const struct list_elem *a, const struct list_elem *b, void *aux) {
 
   return (list_entry(a, struct thread, sleepelem)->wakeup <= list_entry(b, struct thread, sleepelem)->wakeup);
@@ -304,7 +298,6 @@ thread_current (void)
      recursion can cause stack overflow. */
   ASSERT (is_thread (t));
   ASSERT (t->status == THREAD_RUNNING);
-//printf("in thread current\n");
   return t;
 }
 
@@ -348,16 +341,10 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-//    list_push_back (&ready_list, &cur->elem);
     list_insert_ordered (&ready_list, &cur->elem, &sort_thread_priority, NULL);
 
   cur->status = THREAD_READY;
   schedule ();
-/* if(!list_empty(&ready_list)) {
-struct thread * h = list_entry(list_front(&ready_list), struct thread, elem);
-printf("front of ready list after yield from %s thread is %s thread\n", cur->name, h->name);
-} */
-//  schedule();
   intr_set_level (old_level);
 }
 
@@ -381,7 +368,6 @@ thread_foreach (thread_action_func *func, void *aux)
 /* updates a thread's priority */
 void
 thread_update_priority(struct thread * t){
-//printf("in thread update priority %s thread\n", t -> name);
   int new_pri = t->base_priority;
 // if we need to update priority
   if(!list_empty(&(t->acquired)) && (list_entry (list_front (&(t->acquired)), struct lock, acquired_elem))->priority > new_pri) {
@@ -389,7 +375,6 @@ thread_update_priority(struct thread * t){
   }
   if(new_pri == t->priority) return;
 // must update things
-//printf("new priority for %s thread: %d\n", t->name, new_pri);
   t->priority = new_pri;
   if(t->waiting != NULL){
 // remove from waiters list
@@ -407,10 +392,8 @@ thread_set_priority (int new_priority)
 {
 //enum intr_level old_level;
 //old_level = intr_disable();
-//printf("old priority of %s: %d\n", thread_current() -> name, thread_current() -> priority);
   thread_current()->base_priority = new_priority;
   thread_update_priority(thread_current());
-//printf("new priority: %d\n", thread_current() -> priority);
   thread_yield();
 //intr_set_level(old_level);
 }

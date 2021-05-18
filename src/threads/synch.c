@@ -68,8 +68,6 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-//printf("in the sema down while loop\n");
-    //list_push_back (&sema->waiters, &thread_current ()->elem);
       list_insert_ordered (&sema->waiters, &thread_current()->elem, &sort_thread_priority, NULL);
       thread_block ();
     }
@@ -113,12 +111,9 @@ sema_up (struct semaphore *sema)
   enum intr_level old_level;
 
   ASSERT (sema != NULL);
-//printf("in sema up\n");
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) {
     struct thread * t = list_entry (list_pop_front (&sema->waiters), struct thread, elem);
-//    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
-//    printf("going to unblock %s thread\n", t->name);
     thread_unblock(t);
   }
   sema->value++;
@@ -207,37 +202,22 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-//printf("in lock acquire\n");
 // prep to acquire lock
   thread_current()->waiting=lock;
-bool b = lock->semaphore.value <= 0;
-if(b) {
-//printf("%s thread is going to block in lock_acquire\n", thread_current()->name);
-}
-
-// if thread will block, etc etc
-//if(b) {
-//printf("%s thread current priority: %d, lock priority: %d\n", thread_current()->name, thread_current()->priority, lock->priority);
-//}
+// if thread will block, and the lock's priority needs to be updated
   if((lock->semaphore.value <= 0) && ((lock->priority) < (thread_current() -> priority))) {
-//printf("in the if statment\n");
     lock->priority = thread_current() -> priority;
-//printf("new lock priority: %d\n", lock->priority);
-list_remove(&(lock->acquired_elem));
-list_insert_ordered(&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
+// remove and reinsert lock into the holder's acquired list
+    list_remove(&(lock->acquired_elem));
+    list_insert_ordered(&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
     thread_update_priority(lock->holder);
   }
   sema_down (&lock->semaphore);
-if(b) {
-//printf("just got back from being blocked, in lock_acquire\n");
-}
 // lock has been acquired
   lock->holder = thread_current ();
   lock->holder->waiting=NULL;
 // update holder thread's acquired list
-//  list_push_back (&(lock->holder->acquired), &(lock->acquired_elem));
   list_insert_ordered (&(lock->holder->acquired), &(lock->acquired_elem), &sort_lock, NULL);
-//  lock->holder->acquired
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -272,25 +252,15 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   // remove lock from lock->holder->acquired
   list_remove(&(lock->acquired_elem));
-//lock_update_priority(lock);
-list_remove(&(lock->acquired_elem));
-thread_update_priority(lock->holder);
+  list_remove(&(lock->acquired_elem));
+  thread_update_priority(lock->holder);
   lock->holder = NULL;
-bool b = list_empty(&(lock->semaphore.waiters));
-//lock_update_priority(lock);
+  bool b = list_empty(&(lock->semaphore.waiters));
   sema_up (&lock->semaphore);
-  // check if more elems on list
-  /*if(list_empty(&(lock->semaphore.waiters))) {
-    lock->priority = 0;
-  } else {
-    lock->priority = list_entry(list_front(&(lock->semaphore.waiters)), struct thread, elem)->priority;
-  }*/
-//  lock_update_priority(lock);
-if(!b) {
-//printf("%s thread going to yield\n", thread_current() -> name);
-thread_yield();
-}
-// printf("released lock\n");
+  // if another thread has acquired this lock, yield to schedule again
+  if(!b) {
+    thread_yield();
+  }
 }
 
 /* updates a locks's priority */
